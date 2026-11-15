@@ -2,6 +2,14 @@
 
 一个安静、克制的 Windows 只读查看器，基于 **Tauri 2 + React + TypeScript**，支持 `.txt`、Markdown、常见代码 / 配置文件、图片、视频与音频。
 
+## 界面预览
+
+![主界面 · 暗夜主题：书库文件树、多标签与 Markdown 渲染](docs/screenshots/main-dark.png)
+
+| 白天主题 · 代码查看 | 图片查看 |
+| --- | --- |
+| ![白天主题 · 代码查看](docs/screenshots/main-light.png) | ![图片查看](docs/screenshots/image-viewer.png) |
+
 ## 特性
 
 - **录音棚风格的自绘标题栏**：不显示系统标题栏；左侧是品牌与「文件 / 查看」下拉菜单，右侧是主题切换、阅读设置、快捷键速查与窗口控制。默认暗夜配色，也可切换白天或跟随系统。
