@@ -1,0 +1,43 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Tauri build output
+src-tauri/target
+src-tauri/gen/schemas
+
+# Local test documents
+test-docs
+
+# Local UI preview Edge profile
+.preview-profile*/
+
+# Debug artifacts (screenshots, test logs, temp media)
+.smoke-*.png
+.check-*.png
+.after-*.png
+.edge-*
+.repro.png
+.tmp-media/
+.preview/
