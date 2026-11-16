@@ -1,50 +1,123 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#3a2a1b" />
-      <stop offset="0.55" stop-color="#241a11" />
-      <stop offset="1" stop-color="#15100b" />
+      <stop offset="0" stop-color="#0e1829" />
+      <stop offset="0.55" stop-color="#080e1a" />
+      <stop offset="1" stop-color="#04070d" />
     </linearGradient>
-    <linearGradient id="page" x1="0.2" y1="0" x2="0.8" y2="1">
-      <stop offset="0" stop-color="#f7ddaF" />
-      <stop offset="1" stop-color="#dfa45c" />
+    <radialGradient id="cyanGlow" cx="0.2" cy="0.06" r="0.7">
+      <stop offset="0" stop-color="#22d3ee" stop-opacity="0.2" />
+      <stop offset="0.5" stop-color="#22d3ee" stop-opacity="0.06" />
+      <stop offset="1" stop-color="#22d3ee" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="violetGlow" cx="0.9" cy="0.95" r="0.65">
+      <stop offset="0" stop-color="#8b5cf6" stop-opacity="0.24" />
+      <stop offset="1" stop-color="#8b5cf6" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="vignette" cx="0.5" cy="0.42" r="0.76">
+      <stop offset="0.55" stop-color="#000000" stop-opacity="0" />
+      <stop offset="1" stop-color="#000000" stop-opacity="0.42" />
+    </radialGradient>
+    <linearGradient id="leftPage" x1="0.15" y1="0" x2="0.6" y2="1">
+      <stop offset="0" stop-color="#8bf3ff" />
+      <stop offset="0.5" stop-color="#23c9df" />
+      <stop offset="1" stop-color="#0a829b" />
     </linearGradient>
-    <linearGradient id="page2" x1="0.2" y1="0" x2="0.8" y2="1">
-      <stop offset="0" stop-color="#f1cd93" />
-      <stop offset="1" stop-color="#cf8c40" />
+    <linearGradient id="rightPage" x1="0.85" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#cdbdff" />
+      <stop offset="0.5" stop-color="#8b5cf6" />
+      <stop offset="1" stop-color="#5b21b6" />
     </linearGradient>
+    <linearGradient id="ribbon" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff3c4" />
+      <stop offset="0.5" stop-color="#fbbf24" />
+      <stop offset="1" stop-color="#e08a0b" />
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.22" />
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.04" />
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.12" />
+    </linearGradient>
+    <linearGradient id="crease" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#020812" stop-opacity="0" />
+      <stop offset="0.5" stop-color="#020812" stop-opacity="0.5" />
+      <stop offset="1" stop-color="#020812" stop-opacity="0" />
+    </linearGradient>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="30" />
+    </filter>
+    <clipPath id="bookClip">
+      <path d="M512 400C466 352 394 320 310 304C282 298 256 302 234 316L234 672C234 704 254 728 286 732C370 740 446 772 512 814Z" />
+      <path d="M512 400C558 352 630 320 714 304C742 298 768 302 790 316L790 672C790 704 770 728 738 732C654 740 578 772 512 814Z" />
+    </clipPath>
   </defs>
-  <rect width="1024" height="1024" rx="228" fill="url(#bg)" />
-  <circle cx="512" cy="470" r="330" fill="#e0a458" opacity="0.05" />
+
+  <rect width="1024" height="1024" rx="232" fill="url(#bg)" />
+  <rect width="1024" height="1024" rx="232" fill="url(#cyanGlow)" />
+  <rect width="1024" height="1024" rx="232" fill="url(#violetGlow)" />
+
+  <!-- 书页背后的柔光 -->
+  <g transform="translate(512 560) scale(1.07) translate(-512 -566)">
+  <g filter="url(#soft)" opacity="0.34">
+    <ellipse cx="390" cy="590" rx="220" ry="190" fill="#22d3ee" />
+    <ellipse cx="640" cy="610" rx="210" ry="180" fill="#8b5cf6" />
+  </g>
+
+  <!-- 底部投影 -->
+  <ellipse cx="512" cy="800" rx="290" ry="60" fill="#000000" opacity="0.4" filter="url(#soft)" />
+
+  <!-- 左页 -->
   <path
-    d="M512 356c-64-52-146-80-232-80-23 0-45 2-66 7-6 1-10 7-10 13v412c0 9 8 15 16 13 20-4 40-6 60-6 86 0 168 28 232 80V356z"
-    fill="url(#page)"
+    d="M512 400C466 352 394 320 310 304C282 298 256 302 234 316L234 672C234 704 254 728 286 732C370 740 446 772 512 814Z"
+    fill="url(#leftPage)"
   />
+  <!-- 右页 -->
   <path
-    d="M512 356c64-52 146-80 232-80 23 0 45 2 66 7 6 1 10 7 10 13v412c0 9-8 15-16 13-20-4-40-6-60-6-86 0-168 28-232 80V356z"
-    fill="url(#page2)"
+    d="M512 400C558 352 630 320 714 304C742 298 768 302 790 316L790 672C790 704 770 728 738 732C654 740 578 772 512 814Z"
+    fill="url(#rightPage)"
   />
-  <path d="M512 356v439" stroke="#8a5420" stroke-width="12" opacity="0.5" />
+
+  <!-- 中缝的暗部 -->
+  <g clip-path="url(#bookClip)">
+    <rect x="412" y="296" width="200" height="528" fill="url(#crease)" />
+  </g>
+  <path d="M512 408V806" stroke="#03101c" stroke-width="12" stroke-linecap="round" opacity="0.45" />
+
+  <!-- 书页文字线条 -->
+  <g stroke="#031b27" stroke-width="20" stroke-linecap="round" fill="none" opacity="0.26">
+    <path d="M300 462C352 452 404 460 452 480" />
+    <path d="M296 546C350 536 406 546 458 566" />
+    <path d="M300 630C352 622 404 632 454 652" />
+    <path d="M724 462C672 452 620 460 572 480" />
+    <path d="M728 546C674 536 618 546 566 566" />
+    <path d="M724 630C672 622 620 632 570 652" />
+  </g>
+
+  <!-- 顶部高光 -->
   <path
-    d="M312 400c48 2 94 13 134 32M312 500c48 2 94 13 134 32M312 600c48 2 94 13 134 32"
-    stroke="#8a5420"
-    stroke-width="20"
-    stroke-linecap="round"
-    opacity="0.32"
-  />
-  <path
-    d="M582 400c48-2 94-13 134-32M582 500c48-2 94-13 134-32M582 600c48-2 94-13 134-32"
-    stroke="#8a5420"
-    stroke-width="20"
-    stroke-linecap="round"
-    opacity="0.32"
-  />
-  <path d="M632 254v180l-22-17-22 17V254z" fill="#b45309" />
-  <path
-    d="M512 356c-64-52-146-80-232-80-23 0-45 2-66 7-6 1-10 7-10 13v412c0 9 8 15 16 13 20-4 40-6 60-6 86 0 168 28 232 80V356z"
+    d="M234 316C256 302 282 298 310 304C394 320 466 352 512 400C558 352 630 320 714 304C742 298 768 302 790 316"
     fill="none"
-    stroke="#f7dDAF"
+    stroke="#ffffff"
     stroke-opacity="0.18"
-    stroke-width="6"
+    stroke-width="5"
+    stroke-linecap="round"
+  />
+
+  <!-- 金色书签 -->
+  <path d="M552 348L608 348L608 520L580 494L552 520Z" fill="url(#ribbon)" />
+  <path d="M552 348L608 348L608 520L580 494L552 520Z" fill="none" stroke="#ffffff" stroke-opacity="0.28" stroke-width="3" />
+  </g>
+
+  <!-- 内圈描边与暗角 -->
+  <rect width="1024" height="1024" rx="232" fill="url(#vignette)" />
+  <rect
+    x="26"
+    y="26"
+    width="972"
+    height="972"
+    rx="212"
+    fill="none"
+    stroke="url(#rim)"
+    stroke-width="4"
   />
 </svg>
