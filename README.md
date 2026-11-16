@@ -19,9 +19,9 @@
 - **自动刷新**：监听文件所在目录，文档或媒体文件在外部被修改后自动更新视图；兼容编辑器“临时文件 + 重命名”的原子保存方式。
 - **编码自动识别**：UTF-8（含 BOM）、GBK / GB18030、Big5、UTF-16 LE/BE 等常见文本编码；二进制文件会被拒绝打开。
 - **代码查看**：`.go`、`.py`、`.js`、`.ts`、`.rs`、`.java`、`.json`、`.yaml` 等常见代码 / 配置文件按等宽字体铺满展示区，复用 Markdown 的代码高亮主题（`Dockerfile`、`Makefile` 等无扩展名文件也支持）。
-- **PDF 查看**：使用 WebView2 自带的 PDF 阅读器，通过 asset 协议流式加载；支持翻页、缩放、文本选择、PDF 内查找与打印，大文件不会整份读入内存；文件在外部修改后自动重新加载。
+- **PDF 查看**：使用 WebView2 自带的 PDF 阅读器，通过本地资源协议流式加载；支持翻页、缩放、文本选择、PDF 内查找与打印，大文件不会整份读入内存；文件在外部修改后自动重新加载。
 - **更新检测**：启动后静默拉取 TOS 上的 `update.json`，发现新版本会弹出更新说明与下载入口；「文件 → 检查更新…」可随时手动检查，并显示当前版本。
-- **Markdown 渲染**：unified 管线 + GitHub Flavored Markdown，文档式简洁排版，支持标题锚点、表格、任务列表、删除线、脚注、代码高亮与一键复制；同目录图片通过受限的 asset 协议显示，相对链接可在新标签页打开。
+- **Markdown 渲染**：unified 管线 + GitHub Flavored Markdown，文档式简洁排版，支持标题锚点、表格、任务列表、删除线、脚注、代码高亮与一键复制；同目录图片通过受限的本地资源协议显示，相对链接可在新标签页打开。
 - **图片查看**：常见图片格式，支持“适应窗口 / 1:1”切换并显示原始尺寸，透明背景以棋盘格呈现。
 - **视频与音频**：内嵌 HTML5 播放器，支持进度拖动；媒体变化后自动重新加载，无法播放时提供“用系统应用打开”。
 - **阅读体验**：暗夜 / 白天两套配色（也可跟随系统），标题栏一键切换；正文默认无衬线（可切换衬线），字号可选 10 / 12 / 14px（默认 12），版心默认占满展示区（可切换窄 / 中 / 宽 / 全宽），行高可调；阅读位置按文件记忆。
@@ -30,7 +30,7 @@
 
 ## 使用
 
-安装包位于 `src-tauri/target/release/bundle/nsis/`（执行 `pnpm tauri build` 后生成）。
+安装包由 `pnpm desktop:build` 或 `python scripts/build-update.py` 生成。
 
 打开文件：
 
@@ -63,19 +63,19 @@
 
 ```bash
 pnpm install
-pnpm tauri dev
+pnpm desktop:dev
 ```
 
 构建安装包：
 
 ```bash
-pnpm tauri build
+pnpm desktop:build
 ```
 
 仅构建可执行文件（跳过安装包）：
 
 ```bash
-pnpm tauri build --no-bundle
+pnpm desktop:build:exe
 ```
 
 ### 发布新版
@@ -94,22 +94,22 @@ python scripts/build-update.py --no-bump --notes "本次更新说明"
 
 脚本流程：
 
-1. 同步递增 `package.json`、`src-tauri/tauri.conf.json`、`src-tauri/Cargo.toml` 的版本号；
-2. 增量构建 NSIS 安装包（依赖保持缓存，只重编应用 crate 并重新链接；`tauri-build` 会自动跟踪 `tauri.conf.json`，不需要 `cargo clean`）；
+1. 同步递增 `package.json`、桌面端配置与后端 `Cargo.toml` 的版本号；
+2. 增量构建 NSIS 安装包（依赖保持缓存，只重编应用 crate 并重新链接；版本号与配置变更会被构建系统自动识别，不需要清理缓存）；
 3. 计算安装包 sha256，生成 `scripts/.docs/update.json`（版本、日期、说明、下载地址、sha256）。
 
 需要绕过应用 crate 的异常缓存时加 `--full`（只清理应用 crate，依赖仍保留）。版本号变化后应用 crate 仍会重编一次，这是把新版本写入 exe 属性与安装包所必需的；但不会重编依赖项。
 
-把生成的 `src-tauri/target/release/bundle/nsis/X-Reader_<版本>_x64-setup.exe` 和 `scripts/.docs/update.json` 上传到 `https://qf99.tos-cn-beijing.volces.com/x-reader/`。清单地址与 `src-tauri/src/update.rs` 中的常量一致，应用启动后会自动检查；「文件 → 检查更新…」可手动触发。
+把构建输出目录中的 `X-Reader_<版本>_x64-setup.exe` 和 `scripts/.docs/update.json` 上传到 `https://qf99.tos-cn-beijing.volces.com/x-reader/`。清单地址与后端更新模块中的常量一致，应用启动后会自动检查；「文件 → 检查更新…」可手动触发。
 
 `scripts/update.example.json` 是清单格式示例；`--dry-run` 只预览下一个版本号，`--manifest-only` 可在不重新构建时用当前版本已有安装包重新生成清单。
 
 ## 实现说明
 
-- `src-tauri/src/lib.rs`
-  - `read_document`：读取文本 / 代码文件、识别编码、注册目录监听，并把文档目录加入 asset 协议白名单；
-  - `open_media`：打开图片 / 视频 / 音频，注册文件监听并将所在目录加入 asset 协议白名单；
-  - `open_pdf`：打开 PDF，注册文件监听并放开其所在目录的 asset 访问，由 WebView2 内置阅读器流式加载；
+- 后端（Rust）
+  - `read_document`：读取文本 / 代码文件、识别编码、注册目录监听，并把文档目录加入本地资源协议白名单；
+  - `open_media`：打开图片 / 视频 / 音频，注册文件监听并将所在目录加入本地资源协议白名单；
+  - `open_pdf`：打开 PDF，注册文件监听并放开其所在目录的本地资源访问，由 WebView2 内置阅读器流式加载；
   - 所有命令均为异步命令并运行在阻塞线程池（`spawn_blocking`）上，大文件读取与目录扫描不会阻塞窗口事件循环，避免界面冻结或黑屏；
   - `list_directory`：按需读取一层目录，返回子目录与文件；文件按阅读设置传入的 `filter` 过滤（常用类型 / 自定义后缀 / 全部），并始终过滤隐藏 / 系统目录；
   - `notify` 目录监听 + 220ms 防抖；变更事件只携带元数据（size/mtime），前端收到后按需重新读取，且 size+mtime 未变化的触碰事件会被直接跳过；
@@ -126,9 +126,9 @@ python scripts/build-update.py --no-bump --notes "本次更新说明"
   - `components/Sidebar.tsx` / `components/FileTree.tsx`：项目栏式书库、根目录、懒加载文件树、按设置过滤文件、收起图标栏与拖拽调宽；
   - `components/WindowControls.tsx`：无边框窗口的最小化、最大化与关闭；
   - `components/Viewer.tsx`：分块窗口化渐进渲染（只保留目标位置附近的一个分块窗口，窗口之外用估算高度的占位块代替，向下滚动逐步加载、向上滚动自动补载并补偿滚动位置）、阅读位置恢复、查找、链接与锚点跳转；代码文件走等宽代码视图；
-  - `components/PdfViewer.tsx`：通过 asset 协议把 PDF 交给 WebView2 内置阅读器，iframe 铺满展示区，文件变化后按版本参数重新加载；
+  - `components/PdfViewer.tsx`：通过本地资源协议把 PDF 交给 WebView2 内置阅读器，iframe 铺满展示区，文件变化后按版本参数重新加载；
   - `components/MediaViewer.tsx`：图片适应 / 1:1 查看、视频与音频播放、媒体错误回退；
-  - `components/Markdown.tsx` / `components/Code.tsx`：Markdown 与代码文件渲染（remark-gfm / rehype-slug / rehype-highlight）、标题锚点、GFM 表格与任务列表、代码高亮与复制按钮、相对图片转 asset URL；
+  - `components/Markdown.tsx` / `components/Code.tsx`：Markdown 与代码文件渲染（remark-gfm / rehype-slug / rehype-highlight）、标题锚点、GFM 表格与任务列表、代码高亮与复制按钮、相对图片转本地资源 URL；
   - `lib/update.ts` / `components/UpdateDialog.tsx`：版本号比较、启动静默检查、手动检查与更新弹窗；
   - `scripts/build-update.py`：发布构建脚本（版本号 +1、构建 NSIS、生成 update.json）；
   - `lib/format.ts`：支持的后缀清单、代码语言映射与文件类型判断；
@@ -140,14 +140,14 @@ python scripts/build-update.py --no-bump --notes "本次更新说明"
 - 文件树默认展示目录与常用类型（文本 / 代码 / PDF / 媒体）；可在阅读设置 → 文件树切换为“全部文件”或自定义后缀列表。隐藏文件和系统目录始终会被过滤；目录内容在展开时重新读取，点击刷新按钮可更新当前已展开的层级。
 - “全部文件”模式下会列出所有类型，但只有文本 / 代码 / PDF 与媒体能预览；点击其他类型会提示暂不支持，文件本身不会被执行或修改。
 - 添加的根目录必须可读；无权限或已被移动的目录会在树中显示错误与重试。
-- 文本单文件上限 50 MB；超过后会拒绝打开，并停止自动刷新。媒体与 PDF 通过 asset 协议按需流式读取，不一次性载入内存。
+- 文本单文件上限 50 MB；超过后会拒绝打开，并停止自动刷新。媒体与 PDF 通过本地资源协议按需流式读取，不一次性载入内存。
 - 视频 / 音频能否播放取决于 WebView2 自带的解码器。常见 MP4、WebM、MOV、MP3、WAV、AAC、FLAC 一般可用；MKV、AVI、WMV、APE、WMA 等会尽力打开，无法解码时点击“用系统应用打开”即可交给系统播放器。HEIC、TIFF 等图片格式同理。
 - PDF 阅读依赖 WebView2 内置 PDF 阅读器；若环境策略禁用了它，可改用系统 PDF 应用打开。PDF 内的查找、缩放与打印由内置阅读器提供。
 - 更新检测需要能访问 TOS 上的 `update.json`：启动检查失败会静默忽略，手动检查失败会提示原因；点过“稍后”的版本不会被自动再次弹窗，但手动检查仍会显示。下载通过系统浏览器打开安装包链接，不在应用内静默安装。
 - 媒体文件在外部变化时会重新加载；正在播放的视频 / 音频可能会从头开始。
 - 自动刷新是“整文件重新读取”文本文档：变更通知只带元数据，内容按需在后台线程重新读取后再更新视图。编辑器写入过程中会短暂读到中间状态，防抖与重试已将这种窗口降到最小。
 - `Ctrl+F` 仅用于文本文档：会高亮已渲染内容中的全部匹配并可前后跳转；若命中位于窗口之外的分块中，会自动把窗口移动到对应位置后再定位（单次最多记录 2000 个匹配）。PDF 请使用阅读器自带的查找。
-- 媒体显示、图片渲染与 PDF 加载依赖 Tauri asset 协议（支持 Range 请求），且只允许访问已打开文件所在的目录。
+- 媒体显示、图片渲染与 PDF 加载依赖受限的本地资源协议（支持 Range 请求），且只允许访问已打开文件所在的目录。
 
 ## 示例文档
 
@@ -156,8 +156,7 @@ python scripts/build-update.py --no-bump --notes "本次更新说明"
 ## 测试
 
 ```bash
-cd src-tauri
-cargo test
+pnpm test:rust
 ```
 
 当前测试覆盖 UTF-8 / GBK / UTF-16 解码、换行归一化、二进制文件检测、文本 / 代码 / PDF / 媒体扩展名校验、Markdown 相对链接解析、更新清单解析与非法 url 校验，以及文件树目录读取的过滤（常用 / 全部 / 自定义后缀）与排序。
