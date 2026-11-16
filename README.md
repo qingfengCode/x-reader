@@ -1,6 +1,6 @@
 # X-Reader
 
-一个安静、克制的 Windows 只读查看器，基于 **Tauri 2 + React + TypeScript**，支持 `.txt`、Markdown、常见代码 / 配置文件、图片、视频与音频。
+一个安静、克制的 Windows 只读查看器，支持 `.txt`、Markdown、常见代码 / 配置文件、图片、视频与音频。
 
 ## 界面预览
 
