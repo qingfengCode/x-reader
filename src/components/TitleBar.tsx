@@ -37,6 +37,9 @@ interface TitleBarProps {
   onAdjustFont: (delta: number) => void;
   onResetFont: () => void;
   onSettingsChange: (settings: ReaderSettings) => void;
+  onCheckUpdate: () => void;
+  checkingUpdate: boolean;
+  version: string;
 }
 
 const SHORTCUTS: [string, string][] = [
@@ -71,6 +74,9 @@ export function TitleBar({
   onAdjustFont,
   onResetFont,
   onSettingsChange,
+  onCheckUpdate,
+  checkingUpdate,
+  version,
 }: TitleBarProps) {
   const [helpOpen, setHelpOpen] = useState(false);
 
@@ -114,6 +120,14 @@ export function TitleBar({
       icon: <FolderOpenIcon size={13} />,
       disabled: !canReveal,
       onClick: onReveal,
+    },
+    { kind: "sep" },
+    {
+      label: checkingUpdate ? "正在检查更新…" : "检查更新…",
+      icon: <RefreshIcon size={13} />,
+      hint: version ? `v${version}` : undefined,
+      disabled: checkingUpdate,
+      onClick: onCheckUpdate,
     },
     { kind: "sep" },
     {
@@ -252,6 +266,7 @@ export function TitleBar({
             </div>
 
             <p className="modal-foot">
+              {version ? `当前版本 ${version}。` : ""}
               X-Reader 是严格只读的本地查看器：不会写入、重命名或删除任何文件。把文件或文件夹拖进窗口也可以直接打开。
             </p>
           </div>

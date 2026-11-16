@@ -59,6 +59,7 @@
   --k-md: #22d3ee;
   --k-txt: #98a1b6;
   --k-code: #60a5fa;
+  --k-pdf: #fb7185;
   --k-image: #34d399;
   --k-video: #a78bfa;
   --k-audio: #f472b6;
@@ -168,6 +169,7 @@
   --k-md: #0891b2;
   --k-txt: #64748b;
   --k-code: #2563eb;
+  --k-pdf: #e11d48;
   --k-image: #059669;
   --k-video: #7c3aed;
   --k-audio: #db2777;
@@ -951,6 +953,10 @@ button:disabled {
   color: var(--k-code);
 }
 
+.tabstrip-tab-icon.pdf {
+  color: var(--k-pdf);
+}
+
 .tabstrip-tab-icon.image {
   color: var(--k-image);
 }
@@ -1380,6 +1386,10 @@ button:disabled {
 
 .tree-icon.code {
   color: var(--k-code);
+}
+
+.tree-icon.pdf {
+  color: var(--k-pdf);
 }
 
 .tree-icon.image {
@@ -2580,6 +2590,46 @@ button:disabled {
   opacity: 0.35;
 }
 
+/* ---------- PDF ---------- */
+
+/* PDF 由 WebView2 内置查看器渲染，iframe 铺满展示区。 */
+.pdf-viewer {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  background: var(--doc-bg);
+}
+
+.pdf-frame {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #ffffff;
+}
+
+.pdf-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  background: var(--doc-bg);
+  color: var(--text-dim);
+  font-family: var(--font-ui);
+  font-size: 12px;
+}
+
+.pdf-error-stage {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
 /* ---------- 媒体查看 ---------- */
 
 .media-viewer {
@@ -3139,6 +3189,12 @@ button:disabled {
   color: var(--k-code);
 }
 
+.recent-icon.pdf {
+  border-color: rgba(251, 113, 133, 0.32);
+  background: rgba(251, 113, 133, 0.1);
+  color: var(--k-pdf);
+}
+
 .recent-icon.image {
   border-color: rgba(52, 211, 153, 0.32);
   background: rgba(52, 211, 153, 0.1);
@@ -3492,6 +3548,77 @@ button:disabled {
   color: var(--text-faint);
   font-size: 10.5px;
   line-height: 1.7;
+}
+
+/* ---------- 更新提示 ---------- */
+
+.update-modal {
+  width: min(440px, calc(100vw - 40px));
+}
+
+.update-versions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0 12px;
+}
+
+.update-version {
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.update-version.latest {
+  border-color: var(--accent-line);
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.update-arrow {
+  flex: none;
+  color: var(--text-faint);
+  transform: rotate(-90deg);
+}
+
+.update-date {
+  margin-left: auto;
+  color: var(--text-faint);
+  font-size: 10.5px;
+}
+
+.update-notes {
+  max-height: 200px;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font-size: 11.5px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.update-hint {
+  margin: -6px 0 12px;
+  color: var(--warn);
+  font-size: 10.5px;
+}
+
+.update-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 /* ---------- 响应式 ---------- */

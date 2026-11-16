@@ -1,5 +1,5 @@
 export type MediaKind = "image" | "video" | "audio";
-export type DocKind = "md" | "txt" | "code" | MediaKind;
+export type DocKind = "md" | "txt" | "code" | "pdf" | MediaKind;
 export type ThemeMode = "system" | "light" | "dark";
 export type ResolvedTheme = "light" | "dark";
 export type ReaderFont = "sans" | "serif";
@@ -12,6 +12,15 @@ export interface MediaData {
   dir: string;
   fileName: string;
   kind: MediaKind;
+  size: number;
+  mtime: number;
+  watching: boolean;
+}
+
+export interface PdfData {
+  path: string;
+  dir: string;
+  fileName: string;
   size: number;
   mtime: number;
   watching: boolean;
@@ -105,4 +114,18 @@ export interface ToastItem {
 export interface SessionState {
   paths: string[];
   activePath: string | null;
+}
+
+/** scripts/.docs/update.json 的格式，由发布构建脚本生成并上传到 TOS。 */
+export interface UpdateManifest {
+  version: string;
+  notes?: string;
+  date?: string;
+  url?: string;
+  sha256?: string;
+}
+
+export interface UpdateCheckResult {
+  manifest: UpdateManifest | null;
+  error: string | null;
 }

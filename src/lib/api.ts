@@ -9,10 +9,13 @@ import type {
   DocumentChanged,
   DocumentData,
   MediaData,
+  PdfData,
+  UpdateCheckResult,
 } from "../types";
 import {
   AUDIO_EXTENSIONS,
   IMAGE_EXTENSIONS,
+  PDF_EXTENSIONS,
   SUPPORTED_EXTENSIONS,
   TEXT_EXTENSIONS,
   VIDEO_EXTENSIONS,
@@ -25,6 +28,7 @@ export async function pickFiles(): Promise<string[]> {
     filters: [
       { name: "所有支持的文件", extensions: [...SUPPORTED_EXTENSIONS] },
       { name: "文档与代码", extensions: [...TEXT_EXTENSIONS] },
+      { name: "PDF", extensions: [...PDF_EXTENSIONS] },
       { name: "图片", extensions: [...IMAGE_EXTENSIONS] },
       { name: "视频", extensions: [...VIDEO_EXTENSIONS] },
       { name: "音频", extensions: [...AUDIO_EXTENSIONS] },
@@ -40,6 +44,18 @@ export function readDocument(path: string): Promise<DocumentData> {
 
 export function openMedia(path: string): Promise<MediaData> {
   return invoke<MediaData>("open_media", { path });
+}
+
+export function openPdf(path: string): Promise<PdfData> {
+  return invoke<PdfData>("open_pdf", { path });
+}
+
+export function getAppVersion(): Promise<string> {
+  return invoke<string>("app_version");
+}
+
+export function checkUpdate(): Promise<UpdateCheckResult> {
+  return invoke<UpdateCheckResult>("check_update");
 }
 
 export function closeDocument(path: string): Promise<void> {

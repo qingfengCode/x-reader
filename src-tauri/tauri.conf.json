@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "X-Reader",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "identifier": "com.tanghan.xreader",
   "build": {
     "beforeDevCommand": "pnpm dev",
@@ -23,8 +23,8 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost data: blob:; media-src 'self' asset: http://asset.localhost data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src ipc: http://ipc.localhost",
-      "devCsp": "default-src 'self' http://localhost:1420; img-src 'self' asset: http://asset.localhost data: blob:; media-src 'self' asset: http://asset.localhost data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self' 'unsafe-inline' http://localhost:1420; connect-src ipc: http://ipc.localhost http://localhost:1420 ws://localhost:1420",
+      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost data: blob:; media-src 'self' asset: http://asset.localhost data: blob:; frame-src 'self' asset: http://asset.localhost data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src ipc: http://ipc.localhost",
+      "devCsp": "default-src 'self' http://localhost:1420; img-src 'self' asset: http://asset.localhost data: blob:; media-src 'self' asset: http://asset.localhost data: blob:; frame-src 'self' asset: http://asset.localhost data: blob: http://localhost:1420; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self' 'unsafe-inline' http://localhost:1420; connect-src ipc: http://ipc.localhost http://localhost:1420 ws://localhost:1420",
       "assetProtocol": {
         "enable": true,
         "scope": []
@@ -34,8 +34,8 @@
   "bundle": {
     "active": true,
     "targets": ["nsis"],
-    "shortDescription": "只读的文档、代码、图片、视频与音频查看器",
-    "longDescription": "X-Reader 是一个轻量的只读文档、代码与媒体查看器，支持 txt、Markdown、常见代码文件、图片、视频与音频，多标签页，文件变更自动刷新，自动识别常见文本编码。",
+    "shortDescription": "只读的文档、代码、PDF、图片、视频与音频查看器",
+    "longDescription": "X-Reader 是一个轻量的只读文档、代码与媒体查看器，支持 txt、Markdown、常见代码文件、PDF、图片、视频与音频，多标签页，文件变更自动刷新，自动识别常见文本编码。",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

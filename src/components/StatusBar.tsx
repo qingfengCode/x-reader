@@ -33,8 +33,10 @@ export function StatusBar({
   onReveal,
 }: StatusBarProps) {
   const media = tab ? isMediaKind(tab.kind) : false;
-  const findDisabled = !tab || tab.loading || media;
-  const copyDisabled = !tab || tab.loading || media || tab.content.length === 0;
+  const pdf = tab?.kind === "pdf";
+  const binary = media || pdf;
+  const findDisabled = !tab || tab.loading || binary;
+  const copyDisabled = !tab || tab.loading || binary || tab.content.length === 0;
   const watchState = !tab
     ? "idle"
     : tab.missing
@@ -73,7 +75,7 @@ export function StatusBar({
       </span>
 
       <span className="status-center">
-        {tab && !media
+        {tab && !binary
           ? `${formatCount(tab.chars)} 字 · ${formatCount(tab.lines)} 行`
           : ""}
       </span>
@@ -82,7 +84,7 @@ export function StatusBar({
         {tab ? (
           <>
             <span className="status-meta">
-              {media ? kindLabel(tab.kind) : tab.encoding || "—"}
+              {binary ? kindLabel(tab.kind) : tab.encoding || "—"}
             </span>
             <span className="status-meta">{formatBytes(tab.size)}</span>
             <span
@@ -101,7 +103,13 @@ export function StatusBar({
               <button
                 type="button"
                 className={`status-btn ${findOpen ? "active" : ""}`}
-                title={media ? "媒体文件不支持查找" : "在文档中查找 (Ctrl+F)"}
+                title={
+                  pdf
+                    ? "PDF 请使用查看器自带的查找"
+                    : media
+                      ? "媒体文件不支持查找"
+                      : "在文档中查找 (Ctrl+F)"
+                }
                 aria-label="查找"
                 onClick={onToggleFind}
                 disabled={findDisabled}
@@ -111,7 +119,13 @@ export function StatusBar({
               <button
                 type="button"
                 className="status-btn"
-                title={media ? "媒体文件不支持复制内容" : "复制当前内容"}
+                title={
+                  binary
+                    ? pdf
+                      ? "PDF 不支持复制文件内容"
+                      : "媒体文件不支持复制内容"
+                    : "复制当前内容"
+                }
                 aria-label="复制当前内容"
                 onClick={onCopy}
                 disabled={copyDisabled}

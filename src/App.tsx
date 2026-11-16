@@ -5,19 +5,23 @@ import type {
   DocumentChanged,
   DocumentData,
   MediaData,
+  PdfData,
   ReaderSettings,
   RecentFile,
   ResolvedTheme,
   Tab,
   ToastItem,
   ToastKind,
+  UpdateManifest,
 } from "./types";
 import {
   closeDocument,
+  getAppVersion,
   onDocumentChanged,
   onDragDrop,
   openExternal,
   openMedia,
+  openPdf,
   openWithSystem,
   pickFiles,
   readDocument,
@@ -31,14 +35,17 @@ import {
   dirName,
   isMediaKind,
   isSupportedPath,
+  isTextKind,
   kindOf,
   pathKey,
   samePath,
 } from "./lib/format";
 import { copyText } from "./lib/clipboard";
+import { checkForUpdate } from "./lib/update";
 import {
   clearRecents,
   DEFAULT_SETTINGS,
+  loadDismissedUpdateVersion,
   loadRecents,
   loadSession,
   loadSettings,
@@ -46,11 +53,13 @@ import {
   normalizeSettings,
   READER_FONT_SIZES,
   rememberRecent,
+  saveDismissedUpdateVersion,
   saveSession,
   saveSettings,
   saveSidebarOpen,
 } from "./lib/storage";
 import { MediaViewer } from "./components/MediaViewer";
+import { PdfViewer } from "./components/PdfViewer";
 import { Sidebar } from "./components/Sidebar";
 import { StatusBar } from "./components/StatusBar";
 import { TabBar } from "./components/TabBar";
@@ -58,6 +67,7 @@ import { TitleBar } from "./components/TitleBar";
 import { Viewer } from "./components/Viewer";
 import { Welcome } from "./components/Welcome";
 import { Toasts } from "./components/Toasts";
+import { UpdateDialog } from "./components/UpdateDialog";
 import { AlertTriangleIcon, BookOpenIcon } from "./components/icons";
 function pendingTab(id: string, path: string): Tab {
   return {
@@ -125,6 +135,28 @@ function mediaToTab(id: string, media: MediaData): Tab {
   };
 }
 
+function pdfToTab(id: string, pdf: PdfData): Tab {
+  return {
+    id,
+    path: pdf.path,
+    fileName: pdf.fileName,
+    dir: pdf.dir,
+    kind: "pdf",
+    content: "",
+    encoding: "",
+    size: pdf.size,
+    mtime: pdf.mtime,
+    lines: 0,
+    chars: 0,
+    watching: pdf.watching,
+    missing: false,
+    loading: false,
+    refreshing: false,
+    externalUpdate: false,
+    lastUpdatedAt: Date.now(),
+  };
+}
+
 function App() {
   const [tabs, setTabs] = useState<Tab[]>([]);
   const [activeId, setActiveIdState] = useState<string | null>(null);
@@ -135,6 +167,12 @@ function App() {
   const [findOpen, setFindOpen] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [booting, setBooting] = useState(true);
+  const [appVersion, setAppVersion] = useState("");
+  const [updateInfo, setUpdateInfo] = useState<{
+    current: string;
+    manifest: UpdateManifest;
+  } | null>(null);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [systemDark, setSystemDark] = useState(
     () => window.matchMedia("(prefers-color-scheme: dark)").matches,
   );
@@ -146,6 +184,8 @@ function App() {
   const closedTabIdsRef = useRef<Set<string>>(new Set());
   const toastSeqRef = useRef(0);
   const lastErrorToastRef = useRef<Record<string, number>>({});
+  const checkingUpdateRef = useRef(false);
+  const autoUpdateCheckedRef = useRef(false);
 
   const theme: ResolvedTheme =
     settings.theme === "system" ? (systemDark ? "dark" : "light") : settings.theme;
@@ -162,6 +202,64 @@ function App() {
   const dismissToast = useCallback((id: number) => {
     setToasts((prev) => prev.filter((item) => item.id !== id));
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getAppVersion()
+      .then((version) => {
+        if (!cancelled) setAppVersion(version);
+      })
+      .catch(() => {
+        // 非 Tauri 环境或权限不足时忽略
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const runUpdateCheck = useCallback(
+    async (manual: boolean) => {
+      if (checkingUpdateRef.current) return;
+      checkingUpdateRef.current = true;
+      setCheckingUpdate(true);
+      try {
+        const result = await checkForUpdate();
+        if (result.status === "available") {
+          setUpdateInfo({ current: result.current, manifest: result.manifest });
+        } else if (manual) {
+          if (result.status === "latest") {
+            pushToast("info", "已是最新版本", `当前版本 ${result.current}`);
+          } else {
+            pushToast("error", "检查更新失败", result.message);
+          }
+        }
+      } finally {
+        checkingUpdateRef.current = false;
+        setCheckingUpdate(false);
+      }
+    },
+    [pushToast],
+  );
+
+  const closeUpdateDialog = useCallback(() => {
+    setUpdateInfo((info) => {
+      if (info) saveDismissedUpdateVersion(info.manifest.version);
+      return null;
+    });
+  }, []);
+
+  const openUpdateDownload = useCallback(() => {
+    const url = updateInfo?.manifest.url;
+    if (!url || !/^https:\/\//i.test(url)) {
+      pushToast("error", "更新地址无效", url ?? "更新清单未提供下载地址");
+      return;
+    }
+    void openExternal(url)
+      .then(() => closeUpdateDialog())
+      .catch((error) => {
+        pushToast("error", "无法打开下载链接", String(error));
+      });
+  }, [closeUpdateDialog, pushToast, updateInfo]);
 
   const noteRecent = useCallback((file: { path: string; fileName: string; dir: string }) => {
     setRecents(
@@ -223,7 +321,7 @@ function App() {
 
   const toggleFind = useCallback(() => {
     const active = tabsRef.current.find((tab) => tab.id === activeIdRef.current);
-    if (!active || active.loading || isMediaKind(active.kind)) return;
+    if (!active || active.loading || !isTextKind(active.kind)) return;
     setFindOpen((value) => !value);
   }, []);
 
@@ -261,7 +359,8 @@ function App() {
         loads.push(
           (async () => {
             try {
-              if (isMediaKind(kindOf(rawPath))) {
+              const detected = kindOf(rawPath);
+              if (isMediaKind(detected)) {
                 const media = await openMedia(rawPath);
                 if (closedTabIdsRef.current.has(id)) {
                   closeDocument(media.path).catch(() => {
@@ -280,6 +379,28 @@ function App() {
                   ),
                 );
                 noteRecent(media);
+                return;
+              }
+
+              if (detected === "pdf") {
+                const pdf = await openPdf(rawPath);
+                if (closedTabIdsRef.current.has(id)) {
+                  closeDocument(pdf.path).catch(() => {
+                    // 标签页在读取期间被关闭，清理后台监听即可
+                  });
+                  return;
+                }
+                const canonicalKey = pathKey(pdf.path);
+                if (openPathsMapRef.current.get(key) === id) {
+                  openPathsMapRef.current.delete(key);
+                }
+                openPathsMapRef.current.set(canonicalKey, id);
+                setTabs((prev) =>
+                  prev.map((tab) =>
+                    tab.id === id ? { ...tab, ...pdfToTab(id, pdf) } : tab,
+                  ),
+                );
+                noteRecent(pdf);
                 return;
               }
 
@@ -421,6 +542,16 @@ function App() {
             ),
           );
           noteRecent(media);
+        } else if (tab.kind === "pdf") {
+          const pdf = await openPdf(tab.path);
+          setTabs((prev) =>
+            prev.map((item) =>
+              item.id === id
+                ? { ...item, ...pdfToTab(id, pdf), refreshing: false }
+                : item,
+            ),
+          );
+          noteRecent(pdf);
         } else {
           const doc = await readDocument(tab.path);
           setTabs((prev) =>
@@ -468,7 +599,7 @@ function App() {
 
   const copyActiveContent = useCallback(() => {
     const tab = tabsRef.current.find((item) => item.id === activeIdRef.current);
-    if (!tab || tab.loading || isMediaKind(tab.kind) || tab.content.length === 0) {
+    if (!tab || tab.loading || !isTextKind(tab.kind) || tab.content.length === 0) {
       return;
     }
     void copyText(tab.content).then((copied) => {
@@ -699,7 +830,7 @@ function App() {
             pushToastRef.current(
               "info",
               "已忽略不支持的文件",
-              "支持文档、代码、图片、视频与音频",
+              "支持文档、代码、PDF、图片、视频与音频",
             );
           }
         });
@@ -772,12 +903,27 @@ function App() {
     return () => window.clearTimeout(timer);
   }, [tabs, activeId, booting]);
 
+  // 启动后静默检查一次更新；同一版本被“稍后”过就不再自动打扰。
+  useEffect(() => {
+    if (booting || autoUpdateCheckedRef.current) return;
+    autoUpdateCheckedRef.current = true;
+    let cancelled = false;
+    void (async () => {
+      const result = await checkForUpdate();
+      if (cancelled || result.status !== "available") return;
+      if (loadDismissedUpdateVersion() === result.manifest.version) return;
+      setUpdateInfo({ current: result.current, manifest: result.manifest });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [booting]);
+
   const activeTab = useMemo(
     () => tabs.find((tab) => tab.id === activeId) ?? null,
     [tabs, activeId],
   );
   const activeFileName = activeTab?.fileName ?? "";
-  const activeMedia = activeTab ? isMediaKind(activeTab.kind) : false;
 
   useEffect(() => {
     const title = activeFileName ? `${activeFileName} — X-Reader` : "X-Reader";
@@ -823,11 +969,11 @@ function App() {
         return;
       }
       if (modifier && key === "f") {
-        event.preventDefault();
         const active = tabsRef.current.find(
           (tab) => tab.id === activeIdRef.current,
         );
-        if (!active || isMediaKind(active.kind)) return;
+        if (!active || active.loading || !isTextKind(active.kind)) return;
+        event.preventDefault();
         setFindOpen(true);
         window.setTimeout(() => {
           const input = document.querySelector<HTMLInputElement>(".findbar input");
@@ -894,7 +1040,7 @@ function App() {
         hasTab={!!activeTab}
         canRefresh={!!activeTab && !activeTab.loading}
         canReveal={!!activeTab && !activeTab.missing}
-        canFind={!!activeTab && !activeMedia && !activeTab.loading}
+        canFind={!!activeTab && isTextKind(activeTab.kind) && !activeTab.loading}
         findOpen={findOpen}
         sidebarOpen={sidebarOpen}
         theme={theme}
@@ -915,6 +1061,9 @@ function App() {
         onAdjustFont={adjustFontSize}
         onResetFont={resetFontSize}
         onSettingsChange={updateSettings}
+        onCheckUpdate={() => void runUpdateCheck(true)}
+        checkingUpdate={checkingUpdate}
+        version={appVersion}
       />
 
       <div className="app-row">
@@ -964,6 +1113,20 @@ function App() {
                       </div>
                     ) : (
                       <MediaViewer
+                        key={`${tab.id}-${tab.lastUpdatedAt}`}
+                        tab={tab}
+                        onReveal={() => void revealTab(tab)}
+                        onOpenSystem={() => void openTabWithSystem(tab)}
+                      />
+                    )
+                  ) : tab.kind === "pdf" ? (
+                    tab.loading ? (
+                      <div className="viewer-loading">
+                        <span className="spinner" />
+                        正在读取 PDF…
+                      </div>
+                    ) : (
+                      <PdfViewer
                         key={`${tab.id}-${tab.lastUpdatedAt}`}
                         tab={tab}
                         onReveal={() => void revealTab(tab)}
@@ -1023,12 +1186,21 @@ function App() {
 
       <Toasts items={toasts} onDismiss={dismissToast} />
 
+      {updateInfo ? (
+        <UpdateDialog
+          current={updateInfo.current}
+          manifest={updateInfo.manifest}
+          onClose={closeUpdateDialog}
+          onDownload={openUpdateDownload}
+        />
+      ) : null}
+
       {dragActive ? (
         <div className="drop-overlay">
           <div className="drop-card">
             <BookOpenIcon size={34} />
             <strong>松开以打开文件</strong>
-            <span>支持文档、代码、图片、视频与音频，可一次拖入多个文件</span>
+            <span>支持文档、代码、PDF、图片、视频与音频，可一次拖入多个文件</span>
           </div>
         </div>
       ) : null}

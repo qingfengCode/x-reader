@@ -31,7 +31,7 @@ export function Welcome({ recents, onOpen, onOpenPath, onClearRecents }: Welcome
             安静地读<span className="welcome-dot">。</span>
           </h1>
           <p className="welcome-lead">
-            一个只读的本地阅读空间，支持 txt、Markdown、常见代码文件、图片、视频与音频。
+            一个只读的本地阅读空间，支持 txt、Markdown、常见代码文件、PDF、图片、视频与音频。
             <br />
             文件永远保持原样。
           </p>

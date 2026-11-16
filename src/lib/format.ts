@@ -205,6 +205,7 @@ export const TEXT_EXTENSIONS = [
   ...DOCUMENT_EXTENSIONS,
   ...CODE_EXTENSIONS,
 ] as const;
+export const PDF_EXTENSIONS = ["pdf"] as const;
 export const IMAGE_EXTENSIONS = [
   "png",
   "jpg",
@@ -258,6 +259,7 @@ export const AUDIO_EXTENSIONS = [
 ] as const;
 export const SUPPORTED_EXTENSIONS = [
   ...TEXT_EXTENSIONS,
+  ...PDF_EXTENSIONS,
   ...IMAGE_EXTENSIONS,
   ...VIDEO_EXTENSIONS,
   ...AUDIO_EXTENSIONS,
@@ -265,6 +267,7 @@ export const SUPPORTED_EXTENSIONS = [
 
 const DOCUMENT_SET = new Set<string>(DOCUMENT_EXTENSIONS);
 const CODE_SET = new Set<string>(CODE_EXTENSIONS);
+const PDF_SET = new Set<string>(PDF_EXTENSIONS);
 const IMAGE_SET = new Set<string>(IMAGE_EXTENSIONS);
 const VIDEO_SET = new Set<string>(VIDEO_EXTENSIONS);
 const AUDIO_SET = new Set<string>(AUDIO_EXTENSIONS);
@@ -409,6 +412,7 @@ export function isSupportedPath(path: string): boolean {
     return (
       DOCUMENT_SET.has(extension) ||
       CODE_SET.has(extension) ||
+      PDF_SET.has(extension) ||
       mediaKindOf(path) !== null
     );
   }
@@ -419,8 +423,15 @@ export function kindOf(path: string): DocKind {
   const media = mediaKindOf(path);
   if (media) return media;
   if (/\.(md|markdown|mdx)$/i.test(path)) return "md";
+  const extension = extensionOf(path);
+  if (extension && PDF_SET.has(extension)) return "pdf";
   if (isCodePath(path)) return "code";
   return "txt";
+}
+
+/** 只有文本类文件参与正文查找、复制内容等操作。 */
+export function isTextKind(kind: DocKind): kind is "md" | "txt" | "code" {
+  return kind === "md" || kind === "txt" || kind === "code";
 }
 
 /** 供 highlight.js（rehype-highlight）使用的语言标识。 */
@@ -441,6 +452,8 @@ export function kindLabel(kind: DocKind): string {
       return "TXT";
     case "code":
       return "代码";
+    case "pdf":
+      return "PDF";
     case "image":
       return "图片";
     case "video":

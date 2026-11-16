@@ -1,0 +1,7 @@
+{
+  "version": "0.1.1",
+  "date": "2026-11-16",
+  "notes": "· 示例：新增 PDF 阅读\n· 示例：发布新版时运行 python scripts/build-update.py 自动升版本并生成 update.json\n· notes 支持多行，会原样展示在应用的更新弹窗里",
+  "url": "https://qf99.tos-cn-beijing.volces.com/x-reader/X-Reader_0.1.1_x64-setup.exe",
+  "sha256": "发布构建会自动计算安装包的 sha256 并写入这里"
+}

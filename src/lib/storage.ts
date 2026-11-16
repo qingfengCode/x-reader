@@ -13,6 +13,7 @@ const SCROLL_KEY = "xreader:scroll:v1";
 const SIDEBAR_KEY = "xreader:sidebar:v1";
 const SIDEBAR_WIDTH_KEY = "xreader:sidebar-width:v1";
 const ROOTS_KEY = "xreader:roots:v1";
+const DISMISSED_UPDATE_KEY = "xreader:update-dismissed:v1";
 const MAX_RECENTS = 15;
 const MAX_SCROLL_ENTRIES = 80;
 const MAX_ROOTS = 20;
@@ -222,6 +223,16 @@ export function loadRoots(): string[] {
 
 export function saveRoots(roots: string[]): void {
   writeJson(ROOTS_KEY, roots.slice(0, MAX_ROOTS));
+}
+
+/** 用户点过“稍后”的版本号，避免每次启动重复弹出同一个更新。 */
+export function loadDismissedUpdateVersion(): string | null {
+  const version = readJson<string | null>(DISMISSED_UPDATE_KEY, null);
+  return typeof version === "string" && version.length > 0 ? version : null;
+}
+
+export function saveDismissedUpdateVersion(version: string): void {
+  writeJson(DISMISSED_UPDATE_KEY, version);
 }
 
 interface ScrollEntry extends ScrollPosition {

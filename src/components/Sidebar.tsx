@@ -353,7 +353,7 @@ export function Sidebar({
                     <FolderPlusIcon size={20} />
                   </span>
                   <strong>还没有书库目录</strong>
-                  <p>添加一个目录作为根，安静地浏览其中的文档、图片、视频与音频。</p>
+                  <p>添加一个目录作为根，安静地浏览其中的文档、代码、PDF、图片、视频与音频。</p>
                   <button
                     type="button"
                     className="btn rail-empty-add"

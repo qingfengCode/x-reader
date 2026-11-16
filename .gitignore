@@ -1,5 +1,23 @@
-# Logs
-logs
+# ===========================================================================
+# 依赖与构建产物
+# ===========================================================================
+node_modules/
+dist/
+dist-ssr/
+.pnpm-store/
+.npm/
+*.tsbuildinfo
+.eslintcache
+vite.config.ts.timestamp-*
+
+# 测试与覆盖率
+coverage/
+.nyc_output/
+
+# ===========================================================================
+# 日志
+# ===========================================================================
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -7,37 +25,75 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# ===========================================================================
+# Tauri / Rust
+# ===========================================================================
+src-tauri/target/
+src-tauri/gen/schemas/
+# 下面两项为生成物，保留在仓库外（安装包与更新清单手动上传）
+scripts/.docs/
+src-tauri/keys/
 
-# Editor directories and files
+# Cargo.lock 与 pnpm-lock.yaml 是应用锁文件，默认提交，不要忽略。
+
+# ===========================================================================
+# 环境变量与签名密钥
+# ===========================================================================
+.env
+.env.*
+!.env.example
+*.local
+*.key
+*.pem
+*.p12
+*.pfx
+*.mobileprovision
+
+# ===========================================================================
+# 编辑器与 IDE
+# ===========================================================================
 .vscode/*
 !.vscode/extensions.json
-.idea
-.DS_Store
+.idea/
+.vs/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+*.user
+*.userosscache
 
-# Tauri build output
-src-tauri/target
-src-tauri/gen/schemas
+# ===========================================================================
+# 操作系统
+# ===========================================================================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
 
-# Local test documents
-test-docs
+# ===========================================================================
+# 本地测试与调试产物（不进入仓库）
+# ===========================================================================
+# 本地测试文档
+test-docs/
 
-# Local UI preview Edge profile
+# 本地 UI 预览（Edge profile / 预览目录）
+.preview/
 .preview-profile*/
 
-# Debug artifacts (screenshots, test logs, temp media)
+# 调试截图与 Edge 测试日志
 .smoke-*.png
 .check-*.png
 .after-*.png
 .edge-*
 .repro.png
-.tmp-media/
-.preview/
+
+# 临时目录 / 脚本 / 截图（.tmp-*、.tmp-xxx.mjs 等）
+.tmp*
+
+# Python 脚本缓存
+__pycache__/
+*.py[cod]
+.venv/
+venv/

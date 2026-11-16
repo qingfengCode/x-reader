@@ -8,6 +8,8 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Emitter, Manager, State};
 
+mod update;
+
 const MAX_FILE_BYTES: u64 = 50 * 1024 * 1024;
 const WATCH_DEBOUNCE: Duration = Duration::from_millis(220);
 const READ_RETRY_DELAY: Duration = Duration::from_millis(160);
@@ -56,6 +58,17 @@ struct MediaData {
     dir: String,
     file_name: String,
     kind: String,
+    size: u64,
+    mtime: i64,
+    watching: bool,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PdfData {
+    path: String,
+    dir: String,
+    file_name: String,
     size: u64,
     mtime: i64,
     watching: bool,
@@ -262,6 +275,49 @@ async fn open_media(
 }
 
 #[tauri::command]
+async fn open_pdf(
+    app: AppHandle,
+    path: String,
+    state: State<'_, AppState>,
+) -> Result<PdfData, String> {
+    let app = app.clone();
+    let watch = state.watch.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let file = canonical_pdf(&path)?;
+        let metadata =
+            fs::metadata(&file).map_err(|error| format!("无法读取文件信息：{error}"))?;
+        if let Some(dir) = file.parent() {
+            // PDF 由 WebView2 内置查看器通过 asset 协议流式读取。
+            let _ = app.asset_protocol_scope().allow_directory(dir, true);
+        }
+        let mut pdf = PdfData {
+            path: file.to_string_lossy().into_owned(),
+            dir: file
+                .parent()
+                .map(|dir| dir.to_string_lossy().into_owned())
+                .unwrap_or_default(),
+            file_name: file
+                .file_name()
+                .map(|name| name.to_string_lossy().into_owned())
+                .unwrap_or_default(),
+            size: metadata.len(),
+            mtime: mtime_millis(&metadata),
+            watching: false,
+        };
+        pdf.watching = match watch.lock() {
+            Ok(mut state) => {
+                state.note_seen(&file, pdf.size, pdf.mtime);
+                state.register(file).is_ok()
+            }
+            Err(_) => false,
+        };
+        Ok(pdf)
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
+#[tauri::command]
 async fn close_document(path: String, state: State<'_, AppState>) -> Result<(), String> {
     let watch = state.watch.clone();
     tauri::async_runtime::spawn_blocking(move || {
@@ -403,6 +459,24 @@ fn canonical_media(path: &str) -> Result<PathBuf, String> {
     Ok(file)
 }
 
+fn canonical_pdf(path: &str) -> Result<PathBuf, String> {
+    let file = dunce::canonicalize(path).map_err(|_| format!("文件不存在或无法访问：{path}"))?;
+    if !file.is_file() {
+        return Err("该路径不是文件".to_string());
+    }
+    if !is_pdf(&file) {
+        return Err("该文件不是 PDF".to_string());
+    }
+    Ok(file)
+}
+
+fn is_pdf(path: &Path) -> bool {
+    path.extension()
+        .and_then(|extension| extension.to_str())
+        .map(|extension| extension.eq_ignore_ascii_case("pdf"))
+        .unwrap_or(false)
+}
+
 /// 可作为代码 / 纯文本查看的扩展名；与前端 src/lib/format.ts 的列表保持一致。
 const TEXT_EXTENSIONS: &[&str] = &[
     // 文档
@@ -476,7 +550,7 @@ fn media_kind(path: &Path) -> Option<&'static str> {
 }
 
 fn is_supported_file(path: &Path) -> bool {
-    is_text_file(path) || media_kind(path).is_some()
+    is_text_file(path) || media_kind(path).is_some() || is_pdf(path)
 }
 
 #[cfg(windows)]
@@ -641,7 +715,7 @@ fn change_payload(file: &Path, watch: &Arc<Mutex<WatchState>>) -> Option<Documen
             }
             Some(DocumentChanged {
                 path,
-                kind: if media_kind(file).is_some() {
+                kind: if media_kind(file).is_some() || is_pdf(file) {
                     "media"
                 } else {
                     "changed"
@@ -770,10 +844,13 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             read_document,
             open_media,
+            open_pdf,
             close_document,
             resolve_document_link,
             take_launch_files,
-            list_directory
+            list_directory,
+            update::app_version,
+            update::check_update
         ])
         .run(tauri::generate_context!())
         .expect("error while running x-reader");
@@ -853,6 +930,16 @@ mod tests {
     }
 
     #[test]
+    fn detects_pdf_files() {
+        assert!(is_pdf(Path::new("book.pdf")));
+        assert!(is_pdf(Path::new("BOOK.PDF")));
+        assert!(!is_pdf(Path::new("book.txt")));
+        assert!(!is_text_file(Path::new("book.pdf")));
+        assert_eq!(media_kind(Path::new("book.pdf")), None);
+        assert!(is_supported_file(Path::new("book.pdf")));
+    }
+
+    #[test]
     fn resolves_relative_document_links() {
         let root = std::env::temp_dir().join(format!(
             "x-reader-link-test-{}-{}",
@@ -903,6 +990,7 @@ mod tests {
         fs::write(root.join("B.txt"), "b").unwrap();
         fs::write(root.join("a.MD"), "a").unwrap();
         fs::write(root.join("cover.png"), "png").unwrap();
+        fs::write(root.join("doc.pdf"), "pdf").unwrap();
         fs::write(root.join("main.go"), "package main").unwrap();
         fs::write(root.join("song.mp3"), "mp3").unwrap();
         fs::write(root.join("video.mp4"), "mp4").unwrap();
@@ -919,6 +1007,7 @@ mod tests {
                 "a.MD",
                 "B.txt",
                 "cover.png",
+                "doc.pdf",
                 "main.go",
                 "note.json",
                 "song.mp3",
