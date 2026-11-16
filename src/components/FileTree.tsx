@@ -1,10 +1,20 @@
-import { memo, useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type MouseEvent as ReactMouseEvent,
+} from "react";
 import type { DirEntry } from "../types";
-import { isSupportedPath, kindOf, pathKey } from "../lib/format";
+import { baseName, isSupportedPath, kindOf, pathKey } from "../lib/format";
+import { ContextMenu } from "./ContextMenu";
 import {
   AlertTriangleIcon,
   ChevronRightIcon,
   CloseIcon,
+  CopyIcon,
   FileKindIcon,
   FolderIcon,
   FolderOpenIcon,
@@ -35,6 +45,8 @@ interface TreeSharedProps {
 interface FileTreeProps extends TreeSharedProps {
   roots: string[];
   onRemoveRoot: (path: string) => void;
+  onRevealPath: (path: string) => void;
+  onCopyText: (text: string, label: string) => void;
 }
 
 interface TreeEntryProps extends TreeSharedProps {
@@ -42,13 +54,38 @@ interface TreeEntryProps extends TreeSharedProps {
   depth: number;
   isRoot?: boolean;
   onRemoveRoot?: (path: string) => void;
+  onPathContextMenu: (
+    path: string,
+    isDir: boolean,
+    event: ReactMouseEvent,
+  ) => void;
+}
+
+interface ContextMenuState {
+  path: string;
+  isDir: boolean;
+  x: number;
+  y: number;
 }
 
 export const FileTree = memo(function FileTree({
   roots,
   onRemoveRoot,
+  onRevealPath,
+  onCopyText,
   ...shared
 }: FileTreeProps) {
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const closeContextMenu = useCallback(() => setContextMenu(null), []);
+  const openPathContextMenu = useCallback(
+    (path: string, isDir: boolean, event: ReactMouseEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      setContextMenu({ path, isDir, x: event.clientX, y: event.clientY });
+    },
+    [],
+  );
+
   return (
     <div className="file-tree" role="tree" aria-label="书库文件树">
       {roots.map((root) => (
@@ -58,9 +95,39 @@ export const FileTree = memo(function FileTree({
           depth={0}
           isRoot
           onRemoveRoot={onRemoveRoot}
+          onPathContextMenu={openPathContextMenu}
           {...shared}
         />
       ))}
+      {contextMenu ? (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={closeContextMenu}
+          items={[
+            {
+              label: contextMenu.isDir ? "打开文件夹所在位置" : "打开文件所在位置",
+              icon: <FolderOpenIcon size={13} />,
+              onClick: () => onRevealPath(contextMenu.path),
+            },
+            { kind: "sep" },
+            {
+              label: "复制路径",
+              icon: <CopyIcon size={13} />,
+              onClick: () => onCopyText(contextMenu.path, "路径"),
+            },
+            {
+              label: contextMenu.isDir ? "复制文件夹名" : "复制文件名",
+              icon: <CopyIcon size={13} />,
+              onClick: () =>
+                onCopyText(
+                  baseName(contextMenu.path),
+                  contextMenu.isDir ? "文件夹名" : "文件名",
+                ),
+            },
+          ]}
+        />
+      ) : null}
     </div>
   );
 });
@@ -77,6 +144,7 @@ function TreeEntry({
   onOpenFile,
   onReload,
   onRemoveRoot,
+  onPathContextMenu,
 }: TreeEntryProps) {
   const key = pathKey(entry.path);
   const indentStyle: CSSProperties = { paddingLeft: `${4 + depth * 14}px` };
@@ -94,6 +162,7 @@ function TreeEntry({
       <div
         className={`tree-row file ${isActive ? "active" : ""} ${supported ? "" : "unsupported"}`}
         style={indentStyle}
+        onContextMenu={(event) => onPathContextMenu(entry.path, false, event)}
       >
         <span className="tree-chevron-space" />
         <button
@@ -118,7 +187,11 @@ function TreeEntry({
 
   return (
     <div className="tree-node" role="treeitem" aria-expanded={isExpanded}>
-      <div className={`tree-row dir ${isRoot ? "root" : ""}`} style={indentStyle}>
+      <div
+        className={`tree-row dir ${isRoot ? "root" : ""}`}
+        style={indentStyle}
+        onContextMenu={(event) => onPathContextMenu(entry.path, true, event)}
+      >
         <button
           type="button"
           className={`tree-toggle ${isExpanded ? "expanded" : ""}`}
@@ -185,6 +258,7 @@ function TreeEntry({
                   onToggleDir={onToggleDir}
                   onOpenFile={onOpenFile}
                   onReload={onReload}
+                  onPathContextMenu={onPathContextMenu}
                 />
               ))}
               {state.entries.length > childLimit ? (

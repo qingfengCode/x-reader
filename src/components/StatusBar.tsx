@@ -8,6 +8,7 @@ import {
 } from "../lib/format";
 import {
   AlertTriangleIcon,
+  CopyIcon,
   FolderOpenIcon,
   LockIcon,
   RefreshIcon,
@@ -18,6 +19,7 @@ interface StatusBarProps {
   tab: Tab | null;
   findOpen: boolean;
   onToggleFind: () => void;
+  onCopy: () => void;
   onRefresh: () => void;
   onReveal: () => void;
 }
@@ -26,11 +28,13 @@ export function StatusBar({
   tab,
   findOpen,
   onToggleFind,
+  onCopy,
   onRefresh,
   onReveal,
 }: StatusBarProps) {
   const media = tab ? isMediaKind(tab.kind) : false;
   const findDisabled = !tab || tab.loading || media;
+  const copyDisabled = !tab || tab.loading || media || tab.content.length === 0;
   const watchState = !tab
     ? "idle"
     : tab.missing
@@ -103,6 +107,16 @@ export function StatusBar({
                 disabled={findDisabled}
               >
                 <SearchIcon size={13} />
+              </button>
+              <button
+                type="button"
+                className="status-btn"
+                title={media ? "媒体文件不支持复制内容" : "复制当前内容"}
+                aria-label="复制当前内容"
+                onClick={onCopy}
+                disabled={copyDisabled}
+              >
+                <CopyIcon size={13} />
               </button>
               <button
                 type="button"

@@ -757,6 +757,15 @@ button:disabled {
   transform-origin: top right;
 }
 
+/* 通用右键菜单：portal 到 body，位置由内联样式给出 */
+.context-menu {
+  z-index: 90;
+}
+
+.context-menu:focus {
+  outline: none;
+}
+
 @keyframes menu-in {
   from {
     opacity: 0;
@@ -1977,24 +1986,32 @@ button:disabled {
 
 /* ---------- 代码文件 ---------- */
 
-/* 代码始终等宽、占满展示区；分块渲染时每块是一个 Markdown 风格的代码块。 */
+/* 代码直接占据展示区：没有卡片边框与居中版心，长行横向滚动。 */
 .doc.code-doc {
-  padding-top: 18px;
-  padding-bottom: 72px;
+  max-width: none;
+  padding: 16px clamp(16px, 2.2vw, 30px) 96px;
   font-family: var(--font-mono);
 }
 
-.doc.code-doc .md-code {
-  margin: 0 0 10px;
-}
-
-.doc.code-doc .md-code:last-child {
-  margin-bottom: 0;
-}
-
-.doc.code-doc .md-code pre {
+.code-file pre {
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  background: transparent;
+  color: var(--reader-ink);
+  font-family: var(--font-mono);
   font-size: 1em;
-  line-height: 1.65;
+  line-height: 1.7;
+  tab-size: 2;
+}
+
+.code-file pre code {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
 }
 
 .code-chunk-wrap {

@@ -158,11 +158,10 @@ export function renderMarkdown(source: string): string {
   }
 }
 
-// 代码文件没有 Markdown 语法，直接构造 hast 树交给同一套高亮 / 包装 / 序列化管线，
-// 这样源码里的 ``` 或标题符号不会被误解析，外观也与 Markdown 代码块一致。
+// 代码文件没有 Markdown 语法，直接构造 hast 树交给高亮 / 序列化管线。
+// 不套 Markdown 代码块外壳（语言头、复制按钮、卡片边框），让代码直接铺满展示区。
 const codeProcessor = unified()
   .use(rehypeHighlight, { detect: false, ignoreMissing: true })
-  .use(rehypeWrapBlocks)
   .use(rehypeStringify);
 
 export function renderCode(source: string, language: string): string {

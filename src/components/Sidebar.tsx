@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import type { DirFilter, ReaderSettings, Tab, ToastKind } from "../types";
 import { clamp, pathKey, samePath } from "../lib/format";
-import { listDirectory, pickDirectory } from "../lib/api";
+import { listDirectory, pickDirectory, revealFile } from "../lib/api";
+import { copyText } from "../lib/clipboard";
 import {
   DEFAULT_SIDEBAR_WIDTH,
   loadRoots,
@@ -184,6 +185,28 @@ export function Sidebar({
     [roots],
   );
 
+  const handleRevealPath = useCallback(
+    (path: string) => {
+      revealFile(path).catch((error) => {
+        onNotify("error", "无法在资源管理器中打开", String(error));
+      });
+    },
+    [onNotify],
+  );
+
+  const handleCopyText = useCallback(
+    (text: string, label: string) => {
+      void copyText(text).then((copied) => {
+        onNotify(
+          copied ? "info" : "error",
+          copied ? `已复制${label}` : "复制失败",
+          text,
+        );
+      });
+    },
+    [onNotify],
+  );
+
   const refreshTree = useCallback(() => {
     const paths = Object.values(cacheRef.current)
       .filter((state) => expandedRef.current.has(pathKey(state.path)))
@@ -351,6 +374,8 @@ export function Sidebar({
                   onOpenFile={onOpenFile}
                   onReload={reloadDirectory}
                   onRemoveRoot={handleRemoveRoot}
+                  onRevealPath={handleRevealPath}
+                  onCopyText={handleCopyText}
                 />
               )}
             </div>

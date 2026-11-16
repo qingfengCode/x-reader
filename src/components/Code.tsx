@@ -1,5 +1,4 @@
 import { memo, useMemo } from "react";
-import { handleCopyClick } from "../lib/copyCode";
 import { renderCode } from "../lib/markdownPipeline";
 
 interface CodeProps {
@@ -8,8 +7,8 @@ interface CodeProps {
 }
 
 /**
- * 代码文件的分块。复用 Markdown 的代码块结构（高亮、语言标签、复制按钮）
- * 与 .markdown-body 下的 hljs 主题样式。
+ * 代码文件的分块。直接渲染带高亮的 <pre>，不套卡片外壳，
+ * 由展示区样式让它铺满宽度；复制入口在底部状态栏。
  */
 export const Code = memo(function Code({ source, language }: CodeProps) {
   const html = useMemo(() => renderCode(source, language), [source, language]);
@@ -20,7 +19,6 @@ export const Code = memo(function Code({ source, language }: CodeProps) {
   return (
     <div
       className="markdown-body code-file"
-      onClick={handleCopyClick}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );

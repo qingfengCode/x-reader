@@ -35,6 +35,7 @@ import {
   pathKey,
   samePath,
 } from "./lib/format";
+import { copyText } from "./lib/clipboard";
 import {
   clearRecents,
   DEFAULT_SETTINGS,
@@ -355,31 +356,52 @@ function App() {
     setFindOpen(false);
   }, []);
 
-  const closeTab = useCallback((id: string) => {
+  const closeTabs = useCallback((ids: string[]) => {
+    if (ids.length === 0) return;
+    const closing = new Set(ids);
     const current = tabsRef.current;
-    const index = current.findIndex((tab) => tab.id === id);
-    if (index < 0) return;
-    const closing = current[index];
-    const remaining = current.filter((tab) => tab.id !== id);
+    const targets = current.filter((tab) => closing.has(tab.id));
+    if (targets.length === 0) return;
+    const remaining = current.filter((tab) => !closing.has(tab.id));
     setTabs(remaining);
     tabsRef.current = remaining;
-    closedTabIdsRef.current.add(id);
-    for (const [key, value] of inflightRef.current) {
-      if (value === id) inflightRef.current.delete(key);
+
+    let nextActive = activeIdRef.current;
+    if (nextActive && closing.has(nextActive)) {
+      const index = current.findIndex((tab) => tab.id === nextActive);
+      const before = current
+        .slice(0, index)
+        .reverse()
+        .find((tab) => !closing.has(tab.id));
+      const after = current
+        .slice(index + 1)
+        .find((tab) => !closing.has(tab.id));
+      nextActive = before?.id ?? after?.id ?? null;
     }
-    if (openPathsMapRef.current.get(pathKey(closing.path)) === id) {
-      openPathsMapRef.current.delete(pathKey(closing.path));
-    }
-    if (activeIdRef.current === id) {
-      const next = remaining[Math.max(0, index - 1)] ?? remaining[0] ?? null;
-      setActiveIdState(next?.id ?? null);
-      activeIdRef.current = next?.id ?? null;
-    }
+    setActiveIdState(nextActive);
+    activeIdRef.current = nextActive;
     setFindOpen(false);
-    closeDocument(closing.path).catch(() => {
-      // 关闭监听失败不影响界面
-    });
+
+    for (const tab of targets) {
+      closedTabIdsRef.current.add(tab.id);
+      for (const [key, value] of inflightRef.current) {
+        if (value === tab.id) inflightRef.current.delete(key);
+      }
+      if (openPathsMapRef.current.get(pathKey(tab.path)) === tab.id) {
+        openPathsMapRef.current.delete(pathKey(tab.path));
+      }
+      closeDocument(tab.path).catch(() => {
+        // 关闭监听失败不影响界面
+      });
+    }
   }, []);
+
+  const closeTab = useCallback(
+    (id: string) => {
+      closeTabs([id]);
+    },
+    [closeTabs],
+  );
 
   const refreshTab = useCallback(
     async (id: string) => {
@@ -443,6 +465,20 @@ function App() {
     },
     [pushToast],
   );
+
+  const copyActiveContent = useCallback(() => {
+    const tab = tabsRef.current.find((item) => item.id === activeIdRef.current);
+    if (!tab || tab.loading || isMediaKind(tab.kind) || tab.content.length === 0) {
+      return;
+    }
+    void copyText(tab.content).then((copied) => {
+      pushToast(
+        copied ? "info" : "error",
+        copied ? "已复制当前内容" : "复制失败",
+        tab.fileName,
+      );
+    });
+  }, [pushToast]);
 
   const handleOpenLink = useCallback(
     async (href: string) => {
@@ -898,6 +934,7 @@ function App() {
             activeId={activeId}
             onSelect={selectTab}
             onClose={closeTab}
+            onCloseMany={closeTabs}
           />
 
           <div className="main-view">
@@ -973,6 +1010,7 @@ function App() {
             tab={activeTab}
             findOpen={findOpen}
             onToggleFind={toggleFind}
+            onCopy={copyActiveContent}
             onRefresh={() => {
               if (activeTab) void refreshTab(activeTab.id);
             }}
